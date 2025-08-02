@@ -1,4 +1,4 @@
-import { brightGreen, brightMagenta, brightRed } from "@std/fmt/colors";
+import { brightGreen, brightRed } from "@std/fmt/colors";
 
 type Suspect = {
   col: number;
@@ -9,10 +9,10 @@ type Suspect = {
 
 type SuspectWithVerdict = Suspect & { guilty: boolean };
 
-type Rule = (clue: Clue) => boolean | undefined;
+type Rule = (scenario: Scenario) => boolean | undefined;
 
-class Clue {
-  static empty = new Clue([]);
+class Scenario {
+  static empty = new Scenario([]);
 
   list: Array<SuspectWithVerdict>;
 
@@ -38,31 +38,47 @@ class Clue {
     return this.list[this.list.length - 1];
   }
 
-  filter(cb: (s: SuspectWithVerdict) => boolean): Clue {
-    return new Clue(this.list.filter(cb));
+  filter(cb: (s: SuspectWithVerdict) => boolean): Scenario {
+    return new Scenario(this.list.filter(cb));
   }
 
-  guilty(): Clue {
+  map(cb: (s: SuspectWithVerdict) => SuspectWithVerdict | Scenario): Scenario {
+    let result = new Scenario([]);
+
+    for (const item of this.list) {
+      const r = cb(item);
+
+      if (r instanceof Scenario) {
+        result = result.union(r);
+      } else {
+        result.list.push(r);
+      }
+    }
+
+    return result;
+  }
+
+  guilty(): Scenario {
     return this.filter((s) => s.guilty);
   }
 
-  innocent(): Clue {
+  innocent(): Scenario {
     return this.filter((s) => !s.guilty);
   }
 
   col(
     col: number,
-  ): Clue {
+  ): Scenario {
     return this.filter((s) => s.col === col);
   }
 
   row(
     row: number,
-  ): Clue {
+  ): Scenario {
     return this.filter((s) => s.row === row);
   }
 
-  edge(): Clue {
+  edge(): Scenario {
     return this.filter((s) =>
       s.row === 1 || s.row === 5 || s.col === 1 || s.col === 4
     );
@@ -70,7 +86,7 @@ class Clue {
 
   right(
     named: string | SuspectWithVerdict | undefined,
-  ): Clue {
+  ): Scenario {
     if (typeof named === "string") {
       named = this.name(named);
     }
@@ -79,12 +95,12 @@ class Clue {
       return this.filter((s) => s.row === named.row && s.col > named.col);
     }
 
-    return Clue.empty;
+    return Scenario.empty;
   }
 
   left(
     named: string | SuspectWithVerdict | undefined,
-  ): Clue {
+  ): Scenario {
     if (typeof named === "string") {
       named = this.name(named);
     }
@@ -93,12 +109,12 @@ class Clue {
       return this.filter((s) => s.row === named.row && s.col < named.col);
     }
 
-    return Clue.empty;
+    return Scenario.empty;
   }
 
   above(
     named: string | SuspectWithVerdict | undefined,
-  ): Clue {
+  ): Scenario {
     if (typeof named === "string") {
       named = this.name(named);
     }
@@ -107,12 +123,12 @@ class Clue {
       return this.filter((s) => s.col === named.col && s.row < named.row);
     }
 
-    return Clue.empty;
+    return Scenario.empty;
   }
 
   below(
     named: string | SuspectWithVerdict | undefined,
-  ): Clue {
+  ): Scenario {
     if (typeof named === "string") {
       named = this.name(named);
     }
@@ -121,13 +137,53 @@ class Clue {
       return this.filter((s) => s.col === named.col && s.row > named.row);
     }
 
-    return Clue.empty;
+    return Scenario.empty;
+  }
+
+  directlyright(
+    named: string | SuspectWithVerdict | undefined,
+  ): Scenario {
+    const result = this.right(named);
+
+    result.list.splice(1, Infinity);
+
+    return result;
+  }
+
+  directlyleft(
+    named: string | SuspectWithVerdict | undefined,
+  ): Scenario {
+    const result = this.left(named);
+
+    result.list.splice(0, result.list.length - 1);
+
+    return result;
+  }
+
+  directlyabove(
+    named: string | SuspectWithVerdict | undefined,
+  ): Scenario {
+    const result = this.above(named);
+
+    result.list.splice(0, result.list.length - 1);
+
+    return result;
+  }
+
+  directlybelow(
+    named: string | SuspectWithVerdict | undefined,
+  ): Scenario {
+    const result = this.below(named);
+
+    result.list.splice(1, Infinity);
+
+    return result;
   }
 
   between(
     named1: string | SuspectWithVerdict | undefined,
     named2: string | SuspectWithVerdict | undefined,
-  ): Clue {
+  ): Scenario {
     named1 = typeof named1 === "string" ? this.name(named1) : named1;
     named2 = typeof named2 === "string" ? this.name(named2) : named2;
 
@@ -152,108 +208,83 @@ class Clue {
       });
     }
 
-    return Clue.empty;
+    return Scenario.empty;
   }
 
   neighbors(
-    ...named: Array<string | SuspectWithVerdict | undefined>
-  ): Clue {
-    if (named.length > 1) {
-      let combined = new Clue([]);
-      const names: Array<string> = [];
-
-      for (let n of named) {
-        if (n == null) continue;
-
-        if (typeof n !== "string") {
-          n = n.name;
-        }
-
-        names.push(n);
-
-        combined = combined.union(this.neighbors(n));
-      }
-
-      // return combined.filter((s) => !names.includes(s.name));
-
-      return combined;
+    named: string | SuspectWithVerdict | undefined,
+  ): Scenario {
+    if (typeof named === "string") {
+      named = this.name(named);
     }
 
-    if (named.length === 1) {
-      let n = named[0];
-
-      if (typeof n === "string") {
-        n = this.name(n);
-      }
-
-      if (n != null) {
-        return this.filter((s) =>
-          s.name !== n.name &&
-          (s.row === n.row || s.row === n.row - 1 ||
-            s.row === n.row + 1) &&
-          (s.col === n.col || s.col === n.col - 1 ||
-            s.col === n.col + 1)
-        );
-      }
+    if (named != null) {
+      return this.filter((s) =>
+        s.name !== named.name &&
+        (s.row === named.row || s.row === named.row - 1 ||
+          s.row === named.row + 1) &&
+        (s.col === named.col || s.col === named.col - 1 ||
+          s.col === named.col + 1)
+      );
     }
 
-    return Clue.empty;
+    return Scenario.empty;
   }
 
   job(
     job: string,
-  ): Clue {
+  ): Scenario {
     return this.filter((s) => s.job === job);
   }
 
   notjob(
     job: string,
-  ): Clue {
+  ): Scenario {
     return this.filter((s) => s.job !== job);
   }
 
-  gt(num: number | Clue): boolean {
-    if (num instanceof Clue) {
+  gt(num: number | Scenario): boolean {
+    if (num instanceof Scenario) {
       num = num.list.length;
     }
 
     return this.list.length > num;
   }
 
-  lt(num: number | Clue): boolean {
-    if (num instanceof Clue) {
+  lt(num: number | Scenario): boolean {
+    if (num instanceof Scenario) {
       num = num.list.length;
     }
 
     return this.list.length < num;
   }
 
-  gte(num: number | Clue): boolean {
-    if (num instanceof Clue) {
+  gte(num: number | Scenario): boolean {
+    if (num instanceof Scenario) {
       num = num.list.length;
     }
 
     return this.list.length >= num;
   }
 
-  lte(num: number | Clue): boolean {
-    if (num instanceof Clue) {
+  lte(num: number | Scenario): boolean {
+    if (num instanceof Scenario) {
       num = num.list.length;
     }
 
     return this.list.length <= num;
   }
 
-  eq(num: number | Clue): boolean {
-    if (num instanceof Clue) {
+  eq(num: number | Scenario): boolean {
+    if (num instanceof Scenario) {
       num = num.list.length;
     }
 
     return this.list.length === num;
   }
 
-  neq(num: number | Clue): boolean {
-    if (num instanceof Clue) {
+  neq(num: number | Scenario): boolean {
+    if (num instanceof Scenario) {
       num = num.list.length;
     }
 
@@ -294,12 +325,12 @@ class Clue {
     return new Set(this.list);
   }
 
-  union(other: Clue): Clue {
-    return new Clue(this.set().union(other.set()));
+  union(other: Scenario): Scenario {
+    return new Scenario(this.set().union(other.set()));
   }
 
-  intersection(other: Clue): Clue {
-    return new Clue(this.set().intersection(other.set()));
+  intersection(other: Scenario): Scenario {
+    return new Scenario(this.set().intersection(other.set()));
   }
 }
 
@@ -308,12 +339,12 @@ export const B = 2;
 export const C = 3;
 export const D = 4;
 
-let permutations = 2 ** 20;
-let scenarios: Array<number> = [];
-const hints: Array<Array<string>> = [];
-const suspects: Array<Suspect> = [];
+let totalPermutations = 2 ** 20;
+let permutations: Array<number> = [];
+const ruleNames: Array<string> = [];
+const suspects: Array<Suspect | SuspectWithVerdict> = [];
 
-export function solve(
+export function parse(
   copied: string,
 ) {
   const lines = copied.split(/\n([A-D][0-9])/g).map((ln) => ln.trim())
@@ -336,68 +367,75 @@ export function solve(
 
   if (suspects.length != 20) throw new RangeError("too few suspects");
 
-  // console.log(suspects);
+  while (totalPermutations > -1) {
+    permutations.push(totalPermutations);
 
-  while (permutations > -1) {
-    scenarios.push(permutations);
-
-    permutations -= 1;
+    totalPermutations -= 1;
   }
 }
 
-export function rule(rule: Rule) {
-  const relevant: Array<Clue> = [];
+export function rule(name: string, rule: Rule) {
+  ruleNames.push(name);
 
-  scenarios = scenarios.filter((scenario) => {
+  permutations = permutations.filter((p) => {
     const list = [];
 
     for (let i = 0; i < suspects.length; i++) {
-      list.push({ ...suspects[i], guilty: (scenario & 1) === 1 });
+      list.push({ ...suspects[i], guilty: (p & 1) === 1 });
 
-      scenario >>= 1;
+      p >>= 1;
     }
 
-    const clue = new Clue(list);
-    const result = rule(clue);
-
-    if (result) relevant.push(clue);
+    const scenario = new Scenario(list);
+    const result = rule(scenario);
 
     return result;
   });
 
-  hints.unshift([]);
+  const first = permutations[0];
+  const rest = permutations.slice(1);
 
-  const hint = brightMagenta("remaining scenarios: ") + scenarios.length;
-
-  if (!hints.some((h) => h.includes(hint))) {
-    hints[0].push(hint);
-  }
-
-  const primary = relevant[0];
-
-  if (primary) {
-    loop: for (let i = 0; i < primary.list.length; i++) {
-      for (let x = 1; x < relevant.length; x++) {
-        const clue = relevant[x];
-
-        if (primary.list[i].guilty !== clue.list[i].guilty) {
+  loop: for (let i = 0; i < suspects.length; i++) {
+    if (!("guilty" in suspects[i])) {
+      for (const current of rest) {
+        if (((current >> i & 1) === 1) !== ((first >> i & 1) === 1)) {
           continue loop;
         }
       }
 
-      const hint = primary.list[i].guilty
-        ? brightRed(primary.list[i].name + " is guilty")
-        : brightGreen(primary.list[i].name + " is innocent");
-
-      if (!hints.some((h) => h.includes(hint))) {
-        hints[0].push(hint);
-      }
+      suspects[i] = { ...suspects[i], guilty: (first >> i & 1) === 1 };
     }
   }
 }
 
-export function hint() {
-  for (const h of hints[0]) {
-    console.log(h);
+export function print() {
+  for (const suspect of suspects) {
+    let text = `${
+      ["", "A", "B", "C", "D"][suspect.col]
+    }${suspect.row} ${suspect.name} ${suspect.job}`;
+
+    if ("guilty" in suspect) {
+      if (suspect.guilty) {
+        text += " guilty";
+      } else {
+        text += " innocent";
+      }
+
+      if (!ruleNames.includes(suspect.name)) {
+        text += " *";
+
+        if (suspect.guilty) {
+          text = brightRed(text);
+        } else {
+          text = brightGreen(text);
+        }
+      }
+    }
+
+    console.log(text);
   }
+
+  console.log(
+    `----------------------\nremaining permutations: ${permutations.length}\n* = new verdict`,
+  );
 }
