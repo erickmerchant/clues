@@ -1,4 +1,4 @@
-import { A, B, C, D, parse, print, rule } from "./clues.ts";
+import { A, D, parse, print, rule } from "./clues.ts";
 
 parse(`
 👨‍🎨
