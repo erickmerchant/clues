@@ -1,6 +1,6 @@
-import { A, B, D, parse, print, rule } from "./clues.ts";
+import { A, B, clue, D, hint, solve } from "./clues.ts";
 
-parse(`
+solve(`
 👮‍♂️
 
 austin
@@ -123,59 +123,59 @@ cop
 D5
 `);
 
-rule("mary", (s) =>
+clue("mary", (s) =>
   s.neighbors("gus").guilty().eq(3) &&
   s.neighbors("gus").guilty().includes("donna"));
 
-rule(
+clue(
   "donna",
   (s) => s.col(B).innocent().eq(2) && s.col(B).innocent().connected(),
 );
 
-rule(
+clue(
   "vince",
   (s) => s.col(D).innocent().eq(3) && s.col(D).innocent().includes("hal"),
 );
 
-rule(
+clue(
   "hal",
   (s) =>
     s.above("xia").guilty().gt(1) && s.above("xia").guilty().includes("donna"),
 );
 
-rule("xia", (s) => s.job("painter").union(s.job("sleuth")).innocent().eq(3));
+clue("xia", (s) => s.job("painter").union(s.job("sleuth")).innocent().eq(3));
 
-rule(
+clue(
   "emma",
   (s) => s.job("coder").map((j) => s.directlybelow(j)).innocent().eq(2),
 );
 
-rule("karen", (s) => s.below("bonnie").guilty().connected());
+clue("karen", (s) => s.below("bonnie").guilty().connected());
 
-rule(
+clue(
   "floyd",
   (s) => s.neighbors("emma").union(s.neighbors("terry")).innocent().eq(3),
 );
 
-rule("olof", (s) => s.col(A).guilty().eq(s.col(B).guilty()));
+clue("olof", (s) => s.col(A).guilty().eq(s.col(B).guilty()));
 
-rule(
+clue(
   "austin",
   (s) => s.neighbors("mary").union(s.neighbors("hal")).innocent().eq(4),
 );
 
-rule(
+clue(
   "isaac",
   (s) => s.neighbors("xia").union(s.neighbors("hal")).innocent().eq(3),
 );
 
-rule("terry", (s) => s.neighbors("ronald").edge().innocent().eq(2));
+clue("terry", (s) => s.neighbors("ronald").edge().innocent().eq(2));
 
-rule(
+clue(
   "wanda",
   (s) => s.neighbors("vince").innocent().eq(s.neighbors("emma").innocent()),
 );
 
-rule("ronald", (s) => s.neighbors("ronald").innocent().eq(4));
+clue("ronald", (s) => s.neighbors("ronald").innocent().eq(4));
 
-print();
+hint();

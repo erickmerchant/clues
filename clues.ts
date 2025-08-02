@@ -9,7 +9,7 @@ type Suspect = {
 
 type SuspectWithVerdict = Suspect & { guilty: boolean };
 
-type Rule = (scenario: Scenario) => boolean | undefined;
+type Clue = (scenario: Scenario) => boolean | undefined;
 
 class Scenario {
   static empty = new Scenario([]);
@@ -387,10 +387,10 @@ export const D = 4;
 
 let totalPermutations = 2 ** 20;
 let permutations: Array<number> = [];
-const ruleNames: Array<string> = [];
+const clueNames: Array<string> = [];
 const suspects: Array<Suspect | SuspectWithVerdict> = [];
 
-export function parse(
+export function solve(
   copied: string,
 ) {
   const lines = copied.split(/\n([A-D][0-9])/g).map((ln) => ln.trim())
@@ -420,13 +420,17 @@ export function parse(
   }
 }
 
-export function rule(name: string | Rule, rule?: Rule) {
-  if (typeof name !== "function") ruleNames.push(name);
+export function skip(name: string) {
+  clueNames.push(name);
+}
+
+export function clue(name: string | Clue, clue?: Clue) {
+  if (typeof name !== "function") clueNames.push(name);
   else {
-    rule = name;
+    clue = name;
   }
 
-  if (rule == null) return;
+  if (clue == null) return;
 
   permutations = permutations.filter((p) => {
     const list = [];
@@ -438,13 +442,13 @@ export function rule(name: string | Rule, rule?: Rule) {
     }
 
     const scenario = new Scenario(list);
-    const result = rule(scenario);
+    const result = clue(scenario);
 
     return result;
   });
 }
 
-export function print() {
+export function hint() {
   const first = permutations[0];
   const rest = permutations.slice(1);
 
@@ -472,7 +476,7 @@ export function print() {
         text += " innocent";
       }
 
-      if (!ruleNames.includes(suspect.name)) {
+      if (!clueNames.includes(suspect.name)) {
         text += " *";
 
         if (suspect.guilty) {

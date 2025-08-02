@@ -1,6 +1,6 @@
-import { A, D, parse, print, rule } from "./clues.ts";
+import { A, clue, D, hint, skip, solve } from "./clues.ts";
 
-parse(`
+solve(`
 👨‍🎨
 
 bruce
@@ -125,72 +125,76 @@ mech
 D5
 `);
 
-rule((s) => s.isguilty("rose"));
+clue((s) => s.isguilty("rose"));
 
-rule(
+clue(
   "rose",
   (s) => s.neighbors("carol").row(2).innocent().eq(s.row(2).innocent()),
 );
 
-rule(
+clue(
   "jason",
   (s) => s.above("zed").guilty().connected() && s.above("zed").guilty().eq(2),
 );
 
-rule(
+clue(
   "terry",
   (s) => s.innocent().more("mech"),
 );
 
-rule(
+clue(
   "zed",
   (s) => s.neighbors("carol").guilty().eq(s.neighbors("sofia").guilty()),
 );
 
-rule(
+clue(
   "carol",
   (s) => s.neighbors("hilda").innocent().job("painter").eq(1),
 );
 
-rule(
+clue(
   "sofia",
   (s) => s.neighbors("larry").innocent().job("clerk").eq(1),
 );
 
-rule(
+clue(
   "xavi",
   (s) =>
     s.neighbors("martin").intersection(s.neighbors("sofia")).innocent().eq(3),
 );
 
-rule(
+clue(
   "martin",
   (s) => s.above("vicky").intersection(s.neighbors("hilda")).innocent().eq(1),
 );
 
-rule(
+clue(
   "katie",
   (s) => s.neighbors("carol").edge().innocent().eq(1),
 );
 
-rule(
+clue(
   "daniel",
   (s) => s.neighbors("sofia").innocent().eq(4),
 );
 
-rule(
+skip("hilda");
+
+clue(
   "wanda",
   (s) => s.neighbors("freya").union(s.neighbors("jason")).innocent().eq(2),
 );
 
-rule(
+skip("pam");
+
+clue(
   "isaac",
   (s) => s.col(A).innocent().eq(s.col(D).innocent()),
 );
 
-rule(
+clue(
   "vicky",
   (s) => s.neighbors("bruce").union(s.neighbors("sofia")).innocent().eq(5),
 );
 
-print();
+hint();
