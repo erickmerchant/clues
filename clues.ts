@@ -66,6 +66,14 @@ class Scenario {
     return this.filter((s) => !s.guilty);
   }
 
+  isguilty(name: string): boolean {
+    return this.name(name)?.guilty === false;
+  }
+
+  isinnocent(name: string): boolean {
+    return this.name(name)?.guilty === true;
+  }
+
   col(
     col: number,
   ): Scenario {
@@ -332,6 +340,44 @@ class Scenario {
   intersection(other: Scenario): Scenario {
     return new Scenario(this.set().intersection(other.set()));
   }
+
+  more(job: string): boolean {
+    const others: Record<string, number> = {};
+    let total = 0;
+
+    for (const suspect of this.list) {
+      if (suspect.job === job) {
+        total += 1;
+
+        continue;
+      }
+
+      others[suspect.job] ??= 0;
+
+      others[suspect.job] += 1;
+    }
+
+    return Object.values(others).every((v) => total > v);
+  }
+
+  less(job: string): boolean {
+    const others: Record<string, number> = {};
+    let total = 0;
+
+    for (const suspect of this.list) {
+      if (suspect.job === job) {
+        total += 1;
+
+        continue;
+      }
+
+      others[suspect.job] ??= 0;
+
+      others[suspect.job] += 1;
+    }
+
+    return Object.values(others).every((v) => total < v);
+  }
 }
 
 export const A = 1;
@@ -374,8 +420,13 @@ export function parse(
   }
 }
 
-export function rule(name: string, rule: Rule) {
-  ruleNames.push(name);
+export function rule(name: string | Rule, rule?: Rule) {
+  if (typeof name !== "function") ruleNames.push(name);
+  else {
+    rule = name;
+  }
+
+  if (rule == null) return;
 
   permutations = permutations.filter((p) => {
     const list = [];
@@ -391,7 +442,9 @@ export function rule(name: string, rule: Rule) {
 
     return result;
   });
+}
 
+export function print() {
   const first = permutations[0];
   const rest = permutations.slice(1);
 
@@ -406,9 +459,7 @@ export function rule(name: string, rule: Rule) {
       suspects[i] = { ...suspects[i], guilty: (first >> i & 1) === 1 };
     }
   }
-}
 
-export function print() {
   for (const suspect of suspects) {
     let text = `${
       ["", "A", "B", "C", "D"][suspect.col]
