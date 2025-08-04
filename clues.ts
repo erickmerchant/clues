@@ -341,7 +341,7 @@ class Scenario {
     return new Scenario(this.set().intersection(other.set()));
   }
 
-  more(job: string): boolean {
+  morejob(job: string): boolean {
     const others: Record<string, number> = {};
     let total = 0;
 
@@ -360,7 +360,7 @@ class Scenario {
     return Object.values(others).every((v) => total > v);
   }
 
-  less(job: string): boolean {
+  lessjob(job: string): boolean {
     const others: Record<string, number> = {};
     let total = 0;
 

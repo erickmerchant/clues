@@ -139,7 +139,7 @@ clue(
 
 clue(
   "terry",
-  (s) => s.innocent().more("mech"),
+  (s) => s.innocent().morejob("mech"),
 );
 
 clue(
