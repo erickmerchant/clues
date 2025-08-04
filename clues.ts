@@ -67,11 +67,11 @@ class Scenario {
   }
 
   isguilty(name: string): boolean {
-    return this.name(name)?.guilty === false;
+    return this.name(name)?.guilty === true;
   }
 
   isinnocent(name: string): boolean {
-    return this.name(name)?.guilty === true;
+    return this.name(name)?.guilty === false;
   }
 
   col(
