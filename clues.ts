@@ -378,6 +378,14 @@ class Scenario {
 
     return Object.values(others).every((v) => total < v);
   }
+
+  odd(): boolean {
+    return this.list.length % 2 === 1;
+  }
+
+  even(): boolean {
+    return this.list.length % 2 === 0;
+  }
 }
 
 export const A = 1;
